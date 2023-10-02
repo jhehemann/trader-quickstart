@@ -130,7 +130,7 @@ echo "-------------------------"
 echo "Fix broken service update"
 echo "-------------------------"
 echo ""
-echo "This script fixes an interrupted on-chain service update by an Open Autonomy version <0.12.1.post4"
+echo "This script fixes an interrupted on-chain service update by an Open Autonomy version <0.12.1.post4 for $service_repo"
 echo ""
 
 echo "WARNING: This script (fix_interrupted_service_update.sh) is deprecated."
