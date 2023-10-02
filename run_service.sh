@@ -295,15 +295,13 @@ fi
 # clone repo
 if [ -d $directory ]
 then
-    echo "Detected an existing $directory in $org_name repo GitHub. Using this one..."
+    echo "Detected an existing $directory directory. Using this one..."
     echo "Please stop and manually delete the $directory repo if you updated the service's version ($service_version)!"
     echo "You can run the following command, or continue with the pre-existing version of the service:"
     echo "rm -r $directory"
 else
     echo "Cloning the $directory repo from $org_name GitHub..."
     git clone --depth 1 --branch $service_version $service_repo
-    # original command:
-    # git clone --depth 1 --branch $service_version $service_repo
 fi
 
 cd $directory
