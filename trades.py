@@ -343,7 +343,8 @@ def _query_conditional_tokens_gc_subgraph(creator: str) -> dict[str, Any]:
     return all_results
 
 
-def _wei_to_dai(wei: int) -> str:
+def wei_to_dai(wei: int) -> str:
+    """Converts and formats Wei to DAI."""
     dai = wei / 10**18
     formatted_dai = "{:.2f}".format(dai)
     return f"{formatted_dai}"
@@ -373,7 +374,7 @@ def _is_redeemed(user_json: dict[str, Any], fpmmTrade: dict[str, Any]) -> bool:
 
 def _compute_roi(investment: int, net_earnings: int) -> float:
     if investment != 0:
-        roi = (net_earnings / investment) * 100.0
+        roi = net_earnings / investment
     else:
         roi = 0.0
 
@@ -442,7 +443,7 @@ def _format_table(table: dict[Any, dict[Any, Any]]) -> str:
         f"{MarketAttribute.INVESTMENT:<{column_width}}"
         + "".join(
             [
-                f"{_wei_to_dai(table[MarketAttribute.INVESTMENT][c]):>{column_width}}"
+                f"{wei_to_dai(table[MarketAttribute.INVESTMENT][c]):>{column_width}}"
                 for c in STATS_TABLE_COLS
             ]
         )
@@ -452,7 +453,7 @@ def _format_table(table: dict[Any, dict[Any, Any]]) -> str:
         f"{MarketAttribute.FEES:<{column_width}}"
         + "".join(
             [
-                f"{_wei_to_dai(table[MarketAttribute.FEES][c]):>{column_width}}"
+                f"{wei_to_dai(table[MarketAttribute.FEES][c]):>{column_width}}"
                 for c in STATS_TABLE_COLS
             ]
         )
@@ -462,7 +463,7 @@ def _format_table(table: dict[Any, dict[Any, Any]]) -> str:
         f"{MarketAttribute.EARNINGS:<{column_width}}"
         + "".join(
             [
-                f"{_wei_to_dai(table[MarketAttribute.EARNINGS][c]):>{column_width}}"
+                f"{wei_to_dai(table[MarketAttribute.EARNINGS][c]):>{column_width}}"
                 for c in STATS_TABLE_COLS
             ]
         )
@@ -472,7 +473,7 @@ def _format_table(table: dict[Any, dict[Any, Any]]) -> str:
         f"{MarketAttribute.NET_EARNINGS:<{column_width}}"
         + "".join(
             [
-                f"{_wei_to_dai(table[MarketAttribute.NET_EARNINGS][c]):>{column_width}}"
+                f"{wei_to_dai(table[MarketAttribute.NET_EARNINGS][c]):>{column_width}}"
                 for c in STATS_TABLE_COLS
             ]
         )
@@ -482,7 +483,7 @@ def _format_table(table: dict[Any, dict[Any, Any]]) -> str:
         f"{MarketAttribute.REDEMPTIONS:<{column_width}}"
         + "".join(
             [
-                f"{_wei_to_dai(table[MarketAttribute.REDEMPTIONS][c]):>{column_width}}"
+                f"{wei_to_dai(table[MarketAttribute.REDEMPTIONS][c]):>{column_width}}"
                 for c in STATS_TABLE_COLS
             ]
         )
@@ -492,7 +493,7 @@ def _format_table(table: dict[Any, dict[Any, Any]]) -> str:
         f"{MarketAttribute.ROI:<{column_width}}"
         + "".join(
             [
-                f"{table[MarketAttribute.ROI][c]:>{column_width-4}.2f} %  "
+                f"{table[MarketAttribute.ROI][c]*100.0:>{column_width-4}.2f} %  "
                 for c in STATS_TABLE_COLS
             ]
         )
@@ -557,8 +558,8 @@ def parse_user(  # pylint: disable=too-many-locals,too-many-statements
             statistics_table[MarketAttribute.FEES][market_status] += fee_amount
 
             output += f" Market status: {market_status}\n"
-            output += f"        Bought: {_wei_to_dai(collateral_amount)} for {_wei_to_dai(outcomes_tokens_traded)} {fpmm['outcomes'][outcome_index]!r} tokens\n"
-            output += f"           Fee: {_wei_to_dai(fee_amount)}\n"
+            output += f"        Bought: {wei_to_dai(collateral_amount)} for {wei_to_dai(outcomes_tokens_traded)} {fpmm['outcomes'][outcome_index]!r} tokens\n"
+            output += f"           Fee: {wei_to_dai(fee_amount)}\n"
             output += f"   Your answer: {fpmm['outcomes'][outcome_index]!r}\n"
 
             if market_status == MarketState.FINALIZING:
@@ -585,11 +586,11 @@ def parse_user(  # pylint: disable=too-many-locals,too-many-statements
                 if is_invalid:
                     earnings = collateral_amount
                     output += "  Final answer: Market has been declared invalid.\n"
-                    output += f"      Earnings: {_wei_to_dai(earnings)}\n"
+                    output += f"      Earnings: {wei_to_dai(earnings)}\n"
                 elif outcome_index == current_answer:
                     earnings = outcomes_tokens_traded
                     output += f"  Final answer: {fpmm['outcomes'][current_answer]!r} - Congrats! The trade was for the winner answer.\n"
-                    output += f"      Earnings: {_wei_to_dai(earnings)}\n"
+                    output += f"      Earnings: {wei_to_dai(earnings)}\n"
                     redeemed = _is_redeemed(user_json, fpmmTrade)
                     output += f"      Redeemed: {redeemed}\n"
                     statistics_table[MarketAttribute.WINNER_TRADES][market_status] += 1
