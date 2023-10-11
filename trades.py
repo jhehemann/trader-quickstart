@@ -640,11 +640,11 @@ def parse_user(  # pylint: disable=too-many-locals,too-many-statements
     safe_address_balance = _get_balance(safe_address, rpc_url)
 
     output += f"Safe address: {safe_address}\n"
-    output += f"Address balance: {_wei_to_dai(int(safe_address_balance, 16))} xDAI\n"
+    output += f"Address balance: {wei_to_dai(int(safe_address_balance, 16))} xDAI\n"
 
     wxdai_contract_address = "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
     wxdai_balance = _get_token_balance(safe_address, wxdai_contract_address, rpc_url)
-    output += f"Token balance: {_wei_to_dai(wxdai_balance)} wxDAI\n\n"
+    output += f"Token balance: {wei_to_dai(wxdai_balance)} wxDAI\n\n"
 
     _compute_totals(statistics_table)
     output += _format_table(statistics_table)
