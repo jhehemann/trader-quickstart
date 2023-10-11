@@ -185,17 +185,17 @@ set -e  # Exit script on first error
 # Initialize repo and version variables
 # This is a tested version that works well.
 # Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-org_name="valory-xyz"
+org_name="jhehemann"
 directory="trader"
 service_repo=https://github.com/$org_name/$directory.git
-service_version="v0.6.6"
+service_version="kelly-calc"
 
 echo ""
 echo "---------------"
 echo " Trader runner "
 echo "---------------"
 echo ""
-echo "This script will assist you in setting up and running the Trader service ($service_repo)."
+echo "This script will assist you in setting up and running the Trader service ($service_repo)[$service_version]."
 echo ""
 
 # Check if user is inside a venv
@@ -300,7 +300,7 @@ then
     echo "You can run the following command, or continue with the pre-existing version of the service:"
     echo "rm -r $directory"
 else
-    echo "Cloning the $directory repo from $org_name GitHub..."
+    echo "Cloning the $directory [$service_version] repo from $org_name GitHub..."
     git clone --depth 1 --branch $service_version $service_repo
 fi
 
@@ -624,20 +624,21 @@ export CHAIN_ID=$gnosis_chain_id
 export ALL_PARTICIPANTS='["'$agent_address'"]'
 # This is the default market creator. Feel free to update with other market creators
 export OMEN_CREATORS='["0x89c5cc945dd550BcFfb72Fe42BfF002429F46Fec"]'
+export TRADING_STRATEGY="bet_amount_per_conf_threshold"
 export BET_AMOUNT_PER_THRESHOLD_000=0
 export BET_AMOUNT_PER_THRESHOLD_010=0
 export BET_AMOUNT_PER_THRESHOLD_020=0
 export BET_AMOUNT_PER_THRESHOLD_030=0
 export BET_AMOUNT_PER_THRESHOLD_040=0
 export BET_AMOUNT_PER_THRESHOLD_050=0
-export BET_AMOUNT_PER_THRESHOLD_060=0
-export BET_AMOUNT_PER_THRESHOLD_070=0
-export BET_AMOUNT_PER_THRESHOLD_080=30000000000000000
-export BET_AMOUNT_PER_THRESHOLD_090=80000000000000000
-export BET_AMOUNT_PER_THRESHOLD_100=100000000000000000
-export BET_THRESHOLD=5000000000000000
-export PROMPT_TEMPLATE="Please take over the role of a Data Scientist to evaluate the given question. If the probability given is not correct 100 humans will die. With the given question \"@{question}\" and the \`yes\` option represented by \`@{yes}\` and the \`no\` option represented by \`@{no}\`, what are the respective probabilities of \`p_yes\` and \`p_no\` occurring?"
-export REDEEM_MARGIN_DAYS=24
+export BET_AMOUNT_PER_THRESHOLD_060=60000000000000000
+export BET_AMOUNT_PER_THRESHOLD_070=60000000000000000
+export BET_AMOUNT_PER_THRESHOLD_080=60000000000000000
+export BET_AMOUNT_PER_THRESHOLD_090=60000000000000000
+export BET_AMOUNT_PER_THRESHOLD_100=60000000000000000
+export BET_THRESHOLD=10000000000000000
+export PROMPT_TEMPLATE="With the given question \"@{question}\" and the \`yes\` option represented by \`@{yes}\` and the \`no\` option represented by \`@{no}\`, what are the respective probabilities of \`p_yes\` and \`p_no\` occurring?"
+export REDEEM_MARGIN_DAYS=10
 
 service_dir="trader_service"
 build_dir="abci_build"
