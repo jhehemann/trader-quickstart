@@ -293,11 +293,6 @@ else
 fi
 
 # clone repo
-directory="trader"
-# This is a tested version that works well.
-# Feel free to replace this with a different version of the repo, but be careful as there might be breaking changes
-service_version="v0.6.9"
-service_repo=https://github.com/valory-xyz/$directory.git
 if [ -d $directory ]
 then
     echo "Detected an existing $directory directory. Using this one..."
@@ -419,7 +414,9 @@ local_service_hash="$(grep 'service' $packages | awk -F: '{print $2}' | tr -d '"
 remote_service_hash=$(poetry run python "../scripts/service_hash.py")
 operator_address=$(get_address "../$operator_keys_file")
 
-if [ "$local_service_hash" != "$remote_service_hash" ]; then
+# FIXME Temporary disable on-chain update
+# if [ "$local_service_hash" != "$remote_service_hash" ]; then
+if false; then
     echo ""
     echo "Your currently minted on-chain service (id $service_id) mismatches the fetched trader service ($service_version):"
     echo "  - Local service hash ($service_version): $local_service_hash"
@@ -636,14 +633,14 @@ export BET_AMOUNT_PER_THRESHOLD_020=0
 export BET_AMOUNT_PER_THRESHOLD_030=0
 export BET_AMOUNT_PER_THRESHOLD_040=0
 export BET_AMOUNT_PER_THRESHOLD_050=0
-export BET_AMOUNT_PER_THRESHOLD_060=60000000000000000
-export BET_AMOUNT_PER_THRESHOLD_070=60000000000000000
-export BET_AMOUNT_PER_THRESHOLD_080=60000000000000000
-export BET_AMOUNT_PER_THRESHOLD_090=60000000000000000
-export BET_AMOUNT_PER_THRESHOLD_100=60000000000000000
+export BET_AMOUNT_PER_THRESHOLD_060=0
+export BET_AMOUNT_PER_THRESHOLD_070=0
+export BET_AMOUNT_PER_THRESHOLD_080=0
+export BET_AMOUNT_PER_THRESHOLD_090=0
+export BET_AMOUNT_PER_THRESHOLD_100=0
 export BET_THRESHOLD=10000000000000000
 export PROMPT_TEMPLATE="With the given question \"@{question}\" and the \`yes\` option represented by \`@{yes}\` and the \`no\` option represented by \`@{no}\`, what are the respective probabilities of \`p_yes\` and \`p_no\` occurring?"
-export REDEEM_MARGIN_DAYS=10
+export REDEEM_MARGIN_DAYS=24
 
 service_dir="trader_service"
 build_dir="abci_build"
@@ -676,18 +673,20 @@ else
         poetry run autonomy fetch --local --service valory/trader --alias $service_dir
     fi
 
-    cd $service_dir
-    # Build the image
-    poetry run autonomy build-image
-    cp ../../$keys_json_path $keys_json
+    ## Temporarily disable for manual dev build
+    # cd $service_dir
+    # # Build the image
+    # poetry run autonomy build-image
+    # cp ../../$keys_json_path $keys_json
 fi
 
-# Build the deployment with a single agent
-poetry run autonomy deploy build --n $n_agents -ltm
+# # Build the deployment with a single agent
+# echo "Agents: $n_agents"
+# poetry run autonomy deploy build --n $n_agents -ltm --log-level INFO
 
-cd ..
+# cd ..
 
-add_volume_to_service "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/data" "$PWD/../.trader_runner/"
+# add_volume_to_service "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/data" "$PWD/../.trader_runner/"
 
-# Run the deployment
-poetry run autonomy deploy run --build-dir $directory --detach
+# # Run the deployment
+# poetry run autonomy deploy run --build-dir $directory --detach
