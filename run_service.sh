@@ -673,11 +673,11 @@ else
         poetry run autonomy fetch --local --service valory/trader --alias $service_dir
     fi
 
-    ## Temporarily disable for manual dev build
-    # cd $service_dir
-    # # Build the image
-    # poetry run autonomy build-image
-    # cp ../../$keys_json_path $keys_json
+#     # Temporarily disable for manual dev build
+#     cd $service_dir
+#     # Build the image
+#     poetry run autonomy build-image
+#     cp ../../$keys_json_path $keys_json
 fi
 
 # # Build the deployment with a single agent
