@@ -216,42 +216,6 @@ add_tm_state_volume_to_service() {
     mv temp_compose_file "$compose_file"
 }
 
-# Function to remove a volume from a service in a Docker Compose file
-remove_volume_from_service() {
-    local compose_file="$1"
-    local service_name="$2"
-    local volume_name="$3"
-    local volume_path="$4"
-
-    # Check if the Docker Compose file exists
-    if [ ! -f "$compose_file" ]; then
-        echo "Docker Compose file '$compose_file' not found."
-        return 1
-    fi
-
-    # Check if the service exists in the Docker Compose file
-    if ! grep -q "^[[:space:]]*${service_name}:" "$compose_file"; then
-        echo "Service '$service_name' not found in '$compose_file'."
-        return 1
-    fi
-
-    local volume_string="      - $volume_path:$volume_name:Z"
-
-    # Check if the volume exists in the Docker Compose file
-    if ! grep -q "$volume_string" "$compose_file"; then
-        echo "Volume '$volume_string' not found in '$compose_file'."
-        return 1
-    fi
-
-    # Remove the volume entry
-    sed "\#$volume_string#d" "$compose_file" > temp_compose_file
-
-    mv temp_compose_file "$compose_file"
-}
-
-
-
-
 # Function to retrieve on-chain service state (requires env variables set to use --use-custom-chain)
 get_on_chain_service_state() {
     local service_id="$1"
@@ -724,8 +688,12 @@ export BET_AMOUNT_PER_THRESHOLD_080=0
 export BET_AMOUNT_PER_THRESHOLD_090=0
 export BET_AMOUNT_PER_THRESHOLD_100=0
 export BET_THRESHOLD=10000000000000000
-export PROMPT_TEMPLATE="With the given question \"@{question}\" and the \`yes\` option represented by \`@{yes}\` and the \`no\` option represented by \`@{no}\`, what are the respective probabilities of \`p_yes\` and \`p_no\` occurring?"
+export PROMPT_TEMPLATE="Act like an unbiased data scientist and probability expert. With the given question \"@{question}\" and the \`yes\` option represented by \`@{yes}\` and the \`no\` option represented by \`@{no}\`, what are the respective probabilities of \`p_yes\` and \`p_no\` occurring?"
 export REDEEM_MARGIN_DAYS=24
+export IRRELEVANT_TOOLS='["openai-text-davinci-002", "openai-text-davinci-003",
+          "openai-gpt-3.5-turbo", "openai-gpt-4", "stabilityai-stable-diffusion-v1-5",
+          "stabilityai-stable-diffusion-xl-beta-v2-2-2", "stabilityai-stable-diffusion-512-v2-1",
+          "stabilityai-stable-diffusion-768-v2-1", "claude-prediction-offline", "deepmind-optimization", "prediction-offline", "prediction-online", "prediction-offline-sme"]'
 
 service_dir="trader_service"
 build_dir="abci_build"
@@ -767,15 +735,21 @@ fi
 # # Build the deployment with a single agent
 echo "Agents: $n_agents"
 
-# poetry run autonomy deploy build keys.json --dev --packages-dir ~/coding/pm_agents/trader-quickstart/trader/packages --open-autonomy-dir ~/coding/pm_agents/open-autonomy --open-aea-dir ~/coding/pm_agents/open-aea/ --n $n_agents --use-hardhat --use-acn -ltm
 poetry run autonomy deploy build keys.json --dev --packages-dir ~/coding/pm_agents/trader-quickstart/trader/packages --open-autonomy-dir ~/coding/pm_agents/open-autonomy --open-aea-dir ~/coding/pm_agents/open-aea/ --n $n_agents -ltm
+# poetry run autonomy deploy build keys.json --dev --packages-dir ~/coding/pm_agents/trader-quickstart/trader/packages --open-autonomy-dir ~/coding/pm_agents/open-autonomy --open-aea-dir ~/coding/pm_agents/open-aea/ --n $n_agents -ltm
 
 cd ..
 
 add_volume_to_service "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/data" "$PWD/../.trader_runner/"
-add_tm_state_volume_to_service "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/tm_state" "$PWD/trader_service/abci_build/persistent_data/tm_state"
-remove_volume_from_service "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/tm_state" "./persistent_data/tm_state"
 
 poetry run autonomy deploy run --build-dir trader_service/abci_build --detach
+
+echo "Change permission for tm_state directory"
+echo "Pre:"
+ls -al ./trader_service/abci_build/persistent_data 
+chmod 755 ./trader_service/abci_build/persistent_data/tm_state
+echo "Post:"
+ls -al ./trader_service/abci_build/persistent_data 
+
 
 cd ..
