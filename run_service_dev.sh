@@ -767,8 +767,8 @@ fi
 # # Build the deployment with a single agent
 echo "Agents: $n_agents"
 
-poetry run autonomy deploy build keys.json --dev --packages-dir ~/coding/pm_agents/trader-quickstart/trader/packages --open-autonomy-dir ~/coding/pm_agents/open-autonomy --open-aea-dir ~/coding/pm_agents/open-aea/ --n $n_agents --use-hardhat --use-acn -ltm
-# poetry run autonomy deploy build keys.json --dev --packages-dir ~/coding/pm_agents/trader-quickstart/trader/packages --open-autonomy-dir ~/coding/pm_agents/open-autonomy --open-aea-dir ~/coding/pm_agents/open-aea/ --n $n_agents -ltm
+# poetry run autonomy deploy build keys.json --dev --packages-dir ~/coding/pm_agents/trader-quickstart/trader/packages --open-autonomy-dir ~/coding/pm_agents/open-autonomy --open-aea-dir ~/coding/pm_agents/open-aea/ --n $n_agents --use-hardhat --use-acn -ltm
+poetry run autonomy deploy build keys.json --dev --packages-dir ~/coding/pm_agents/trader-quickstart/trader/packages --open-autonomy-dir ~/coding/pm_agents/open-autonomy --open-aea-dir ~/coding/pm_agents/open-aea/ --n $n_agents -ltm
 
 cd ..
 
