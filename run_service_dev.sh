@@ -741,14 +741,16 @@ poetry run autonomy deploy build keys.json --dev --packages-dir ~/coding/pm_agen
 cd ..
 
 add_volume_to_service "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/data" "$PWD/../.trader_runner/"
+add_volume_to_service "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/home/ubuntu/.cache/pypoetry/virtualenvs" "$PWD/trader_service/abci_build/persistent_data/venvs"
 
 poetry run autonomy deploy run --build-dir trader_service/abci_build --detach
 
-echo "Change permission for tm_state directory"
-echo "Pre:"
-ls -al ./trader_service/abci_build/persistent_data 
+sleep 10
+# echo "Change permission for tm_state directory"
+# echo "Pre:"
+# ls -al ./trader_service/abci_build/persistent_data 
 chmod 755 ./trader_service/abci_build/persistent_data/tm_state
-echo "Post:"
+# echo "Post:"
 ls -al ./trader_service/abci_build/persistent_data 
 
 
