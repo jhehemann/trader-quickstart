@@ -693,7 +693,7 @@ export REDEEM_MARGIN_DAYS=24
 export IRRELEVANT_TOOLS='["openai-text-davinci-002", "openai-text-davinci-003",
           "openai-gpt-3.5-turbo", "openai-gpt-4", "stabilityai-stable-diffusion-v1-5",
           "stabilityai-stable-diffusion-xl-beta-v2-2-2", "stabilityai-stable-diffusion-512-v2-1",
-          "stabilityai-stable-diffusion-768-v2-1", "claude-prediction-offline", "deepmind-optimization", "prediction-offline", "prediction-online", "prediction-offline-sme"]'
+          "stabilityai-stable-diffusion-768-v2-1", "claude-prediction-offline", "deepmind-optimization", "deepmind-optimization-strong", "prediction-offline", "prediction-online", "prediction-offline-sme"]'
 
 service_dir="trader_service"
 build_dir="abci_build"
@@ -742,6 +742,7 @@ cd ..
 
 add_volume_to_service "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/data" "$PWD/../.trader_runner/"
 add_volume_to_service "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/home/ubuntu/.cache/pypoetry/virtualenvs" "$PWD/trader_service/abci_build/persistent_data/venvs"
+
 
 poetry run autonomy deploy run --build-dir trader_service/abci_build --detach
 
