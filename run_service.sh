@@ -188,7 +188,7 @@ set -e  # Exit script on first error
 org_name="jhehemann"
 directory="trader"
 service_repo=https://github.com/$org_name/$directory.git
-service_version="kelly-calc"
+service_version="kelly-calc-fix"
 
 echo ""
 echo "---------------"
@@ -626,7 +626,8 @@ export CHAIN_ID=$gnosis_chain_id
 export ALL_PARTICIPANTS='["'$agent_address'"]'
 # This is the default market creator. Feel free to update with other market creators
 export OMEN_CREATORS='["0x89c5cc945dd550BcFfb72Fe42BfF002429F46Fec"]'
-export TRADING_STRATEGY="bet_amount_per_conf_threshold"
+export TRADING_STRATEGY="kelly_criterion"
+export BET_KELLY_FRACTION=0.5
 export BET_AMOUNT_PER_THRESHOLD_000=0
 export BET_AMOUNT_PER_THRESHOLD_010=0
 export BET_AMOUNT_PER_THRESHOLD_020=0
@@ -639,8 +640,14 @@ export BET_AMOUNT_PER_THRESHOLD_080=0
 export BET_AMOUNT_PER_THRESHOLD_090=0
 export BET_AMOUNT_PER_THRESHOLD_100=0
 export BET_THRESHOLD=10000000000000000
-export PROMPT_TEMPLATE="With the given question \"@{question}\" and the \`yes\` option represented by \`@{yes}\` and the \`no\` option represented by \`@{no}\`, what are the respective probabilities of \`p_yes\` and \`p_no\` occurring?"
+export PROMPT_TEMPLATE="Please take over the role of an unbiased Data Scientist and expert for probability estimation. With the given question \"@{question}\" and the \`yes\` option represented by \`@{yes}\` and the \`no\` option represented by \`@{no}\`, what are the respective probabilities of \`p_yes\` and \`p_no\` occurring?"
 export REDEEM_MARGIN_DAYS=24
+
+export IRRELEVANT_TOOLS='["openai-text-davinci-002", "openai-text-davinci-003",
+    "openai-gpt-3.5-turbo", "openai-gpt-4", "stabilityai-stable-diffusion-v1-5",
+    "stabilityai-stable-diffusion-xl-beta-v2-2-2", "stabilityai-stable-diffusion-512-v2-1",
+    "stabilityai-stable-diffusion-768-v2-1", "claude-prediction-offline", "deepmind-optimization", "deepmind-optimization-strong", "prediction-offline", "prediction-offline-sme"]'
+
 
 service_dir="trader_service"
 build_dir="abci_build"
@@ -673,20 +680,20 @@ else
         poetry run autonomy fetch --local --service valory/trader --alias $service_dir
     fi
 
-#     # Temporarily disable for manual dev build
-#     cd $service_dir
-#     # Build the image
-#     poetry run autonomy build-image
-#     cp ../../$keys_json_path $keys_json
+    # Temporarily disable for manual dev build
+    cd $service_dir
+    # Build the image
+    poetry run autonomy build-image
+    cp ../../$keys_json_path $keys_json
 fi
 
-# # Build the deployment with a single agent
-# echo "Agents: $n_agents"
-# poetry run autonomy deploy build --n $n_agents -ltm --log-level INFO
+# Build the deployment with a single agent
+echo "Agents: $n_agents"
+poetry run autonomy deploy build --n $n_agents -ltm --log-level INFO
 
-# cd ..
+cd ..
 
-# add_volume_to_service "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/data" "$PWD/../.trader_runner/"
+add_volume_to_service "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/data" "$PWD/../.trader_runner/"
 
-# # Run the deployment
-# poetry run autonomy deploy run --build-dir $directory --detach
+# Run the deployment
+poetry run autonomy deploy run --build-dir $directory --detach
