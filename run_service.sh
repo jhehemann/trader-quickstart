@@ -636,7 +636,8 @@ export ALL_PARTICIPANTS='["'$agent_address'"]'
 # This is the default market creator. Feel free to update with other market creators
 export OMEN_CREATORS='["0x89c5cc945dd550BcFfb72Fe42BfF002429F46Fec"]'
 export TRADING_STRATEGY="bet_amount_per_conf_threshold"
-export BET_KELLY_FRACTION=0.5
+# Activate and adjust when using trading strategy "kelly_criterion":
+# export BET_KELLY_FRACTION=0.5
 export BET_AMOUNT_PER_THRESHOLD_000=0
 export BET_AMOUNT_PER_THRESHOLD_010=0
 export BET_AMOUNT_PER_THRESHOLD_020=0
@@ -648,10 +649,9 @@ export BET_AMOUNT_PER_THRESHOLD_070=60000000000000000
 export BET_AMOUNT_PER_THRESHOLD_080=60000000000000000
 export BET_AMOUNT_PER_THRESHOLD_090=60000000000000000
 export BET_AMOUNT_PER_THRESHOLD_100=60000000000000000
-export BET_THRESHOLD=20000000000000000
+export BET_THRESHOLD=10000000000000000
 export PROMPT_TEMPLATE="Please take over the role of an unbiased Data Scientist and expert for probability estimation. With the given question \"@{question}\" and the \`yes\` option represented by \`@{yes}\` and the \`no\` option represented by \`@{no}\`, what are the respective probabilities of \`p_yes\` and \`p_no\` occurring?"
 export REDEEM_MARGIN_DAYS=24
-export SLEEP_TIME=10
 
 export IRRELEVANT_TOOLS='["openai-text-davinci-002", "openai-text-davinci-003",
     "openai-gpt-3.5-turbo", "openai-gpt-4", "stabilityai-stable-diffusion-v1-5",
@@ -699,7 +699,7 @@ fi
 
 # Build the deployment with a single agent
 echo "Agents: $n_agents"
-poetry run autonomy deploy build --n $n_agents -ltm --log-level INFO
+poetry run autonomy deploy build --n $n_agents -ltm
 
 cd ..
 

@@ -2,3 +2,5 @@
 trader
 *.DS_Store
 fix_run_service.sh
+run_updates.sh
+run_service_dev.sh
