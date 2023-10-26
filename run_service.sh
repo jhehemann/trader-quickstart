@@ -635,7 +635,7 @@ export CHAIN_ID=$gnosis_chain_id
 export ALL_PARTICIPANTS='["'$agent_address'"]'
 # This is the default market creator. Feel free to update with other market creators
 export OMEN_CREATORS='["0x89c5cc945dd550BcFfb72Fe42BfF002429F46Fec"]'
-export TRADING_STRATEGY="bet_amount_per_conf_threshold"
+# export TRADING_STRATEGY="bet_amount_per_conf_threshold"
 # Activate and adjust when using trading strategy "kelly_criterion":
 # export BET_KELLY_FRACTION=0.5
 export BET_AMOUNT_PER_THRESHOLD_000=0
