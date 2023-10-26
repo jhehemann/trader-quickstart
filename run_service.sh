@@ -290,7 +290,7 @@ set -e  # Exit script on first error
 org_name="jhehemann"
 directory="trader"
 service_repo=https://github.com/$org_name/$directory.git
-service_version="kelly-calc-fix"
+service_version="develop"
 
 echo ""
 echo "---------------"
