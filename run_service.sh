@@ -797,7 +797,7 @@ export REDEEM_MARGIN_DAYS=24
 export IRRELEVANT_TOOLS='["openai-text-davinci-002", "openai-text-davinci-003",
     "openai-gpt-3.5-turbo", "openai-gpt-4", "stabilityai-stable-diffusion-v1-5",
     "stabilityai-stable-diffusion-xl-beta-v2-2-2", "stabilityai-stable-diffusion-512-v2-1",
-    "stabilityai-stable-diffusion-768-v2-1", "claude-prediction-offline", "deepmind-optimization", "deepmind-optimization-strong", "prediction-offline", "prediction-offline-sme"]'
+    "stabilityai-stable-diffusion-768-v2-1", "claude-prediction-offline", "deepmind-optimization", "deepmind-optimization-strong", "prediction-offline", "prediction-offline-sme", "prediction-online-summarized-info"]'
 
 
 service_dir="trader_service"
