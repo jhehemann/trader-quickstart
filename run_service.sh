@@ -45,17 +45,17 @@ ensure_minimum_balance() {
     local address="$1"
     local minimum_balance="$2"
     local address_description="$3"
-    local wxdai="${4:-false}"
+    local token="${4:-"0x0000000000000000000000000000000000000000"}"
 
-    wxdai_balance=0
-    if [ "$wxdai" = "true" ]
+    erc20_balance=0
+    if [ ! "$token" = "0x0000000000000000000000000000000000000000" ]
     then
-        wxdai_balance=$(poetry run python "../scripts/wxdai_balance.py" "$safe" "$rpc")
+        erc20_balance=$(poetry run python "../scripts/erc20_balance.py" "$token" "$address" "$rpc")
     fi
 
     balance_hex=$(get_balance "$address")
     balance=$(hex_to_decimal "$balance_hex")
-    balance=$($PYTHON_CMD -c "print(int($balance) + int($wxdai_balance))")
+    balance=$($PYTHON_CMD -c "print(int($balance) + int($erc20_balance))")
 
     echo "Checking balance of $address_description (minimum required $(wei_to_dai "$minimum_balance") DAI):"
     echo "  - Address: $address"
@@ -78,7 +78,7 @@ ensure_minimum_balance() {
             if [ "$cycle_count" -eq 100 ]; then
                 balance_hex=$(get_balance "$address")
                 balance=$(hex_to_decimal "$balance_hex")
-                balance=$((wxdai_balance+balance))
+                balance=$((erc20_balance+balance))
                 cycle_count=0
             fi
         done
@@ -86,6 +86,53 @@ ensure_minimum_balance() {
         printf "\r    Waiting...   \n"
         echo ""
         echo "  - Updated balance: $(wei_to_dai "$balance") DAI"
+    fi
+
+    echo "    OK."
+    echo ""
+}
+
+# ensure erc20 balance
+ensure_erc20_balance() {
+    local address="$1"
+    local minimum_balance="$2"
+    local address_description="$3"
+    local token="$4"
+    local token_name="$5"
+
+    balance=0
+    if [ ! "$token" = "0x0000000000000000000000000000000000000000" ]
+    then
+        balance=$(poetry run python "../scripts/erc20_balance.py" "$token" "$address" "$rpc")
+    fi
+
+    echo "Checking balance of $address_description (minimum required $(wei_to_dai "$minimum_balance") $token_name):"
+    echo "  - Address: $address"
+    echo "  - Balance: $(wei_to_dai "$balance") $token_name"
+
+    if [ "$($PYTHON_CMD -c "print($balance < $minimum_balance)")" == "True" ]; then
+        echo ""
+        echo "    Please, fund address $address with at least $(wei_to_dai "$minimum_balance")."
+
+        local spin='-\|/'
+        local i=0
+        local cycle_count=0
+        while [ "$($PYTHON_CMD -c "print($balance < $minimum_balance)")" == "True" ]; do
+            printf "\r    Waiting... %s" "${spin:$i:1} "
+            i=$(((i + 1) % 4))
+            sleep .1
+
+            # This will be checked every 10 seconds (100 cycles).
+            cycle_count=$((cycle_count + 1))
+            if [ "$cycle_count" -eq 100 ]; then
+                balance=$(poetry run python "../scripts/erc20_balance.py" "$token" "$address" "$rpc")
+                cycle_count=0
+            fi
+        done
+
+        printf "\r    Waiting...   \n"
+        echo ""
+        echo "  - Updated balance: $(wei_to_dai "$balance") $token_name"
     fi
 
     echo "    OK."
@@ -201,6 +248,18 @@ get_on_chain_service_state() {
     echo "$state"
 }
 
+# stake or unstake a service
+perform_staking_ops() {
+    local unstake="$1"
+    output=$(poetry run python "../scripts/staking.py" "$service_id" "$CUSTOM_SERVICE_REGISTRY_ADDRESS" "$CUSTOM_STAKING_ADDRESS" "../$operator_pkey_path" "$rpc" "$unstake" "$SKIP_LAST_EPOCH_REWARDS")
+    if [[ $? -ne 0 ]]; then
+      echo "Swapping Safe owner failed.\n$output"
+      exit 1
+    fi
+    echo "$output"
+}
+
+
 store=".trader_runner"
 rpc_path="$store/rpc.txt"
 operator_keys_file="$store/operator_keys.json"
@@ -212,6 +271,15 @@ agent_address_path="$store/agent_address.txt"
 service_id_path="$store/service_id.txt"
 service_safe_address_path="$store/service_safe_address.txt"
 store_readme_path="$store/README.txt"
+
+# Check the command-line arguments
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --with-staking) use_staking=true ;;
+        *) echo "Unknown parameter: $1" ;;
+    esac
+    shift
+done
 
 # Function to create the .trader_runner storage
 create_storage() {
@@ -407,40 +475,54 @@ echo "-----------------------------------------"
 
 gnosis_chain_id=100
 n_agents=1
+olas_balance_required_to_bond=25000000000000000000
+xdai_balance_required_to_bond=10000000000000000
+suggested_top_up_default=50000000000000000
 
 # setup the minting tool
 export CUSTOM_CHAIN_RPC=$rpc
 export CUSTOM_CHAIN_ID=$gnosis_chain_id
 export CUSTOM_SERVICE_MANAGER_ADDRESS="0x04b0007b2aFb398015B76e5f22993a1fddF83644"
 export CUSTOM_SERVICE_REGISTRY_ADDRESS="0x9338b5153AE39BB89f50468E608eD9d764B755fD"
+export CUSTOM_STAKING_ADDRESS="0x5add592ce0a1B5DceCebB5Dcac086Cd9F9e3eA5C"
+export CUSTOM_OLAS_ADDRESS="0xcE11e14225575945b8E6Dc0D4F2dD4C570f79d9f"
 export CUSTOM_SERVICE_REGISTRY_TOKEN_UTILITY_ADDRESS="0xa45E64d13A30a51b91ae0eb182e88a40e9b18eD8"
 export CUSTOM_GNOSIS_SAFE_PROXY_FACTORY_ADDRESS="0x3C1fF68f5aa342D296d4DEe4Bb1cACCA912D95fE"
-export CUSTOM_GNOSIS_SAFE_SAME_ADDRESS_MULTISIG_ADDRESS="0x3d77596beb0f130a4415df3D2D8232B3d3D31e44"
+export CUSTOM_GNOSIS_SAFE_SAME_ADDRESS_MULTISIG_ADDRESS="0x6e7f594f680f7aBad18b7a63de50F0FeE47dfD06"
 export CUSTOM_MULTISEND_ADDRESS="0x40A2aCCbd92BCA938b02010E17A5b8929b49130D"
 export AGENT_ID=12
+export MECH_AGENT_ADDRESS="0x77af31De935740567Cf4fF1986D04B2c964A786a"
+export WXDAI_ADDRESS="0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d"
+
 
 if [ -z ${service_id+x} ];
 then
     # Check balances
-    suggested_amount=50000000000000000
+    suggested_amount=$suggested_top_up_default
     ensure_minimum_balance "$operator_address" $suggested_amount "operator's address"
 
     echo "[Service owner] Minting your service on the Gnosis chain..."
 
     # create service
-    cost_of_bonding=10000000000000000
     nft="bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq"
-    service_id=$(poetry run autonomy mint \
+    cmd="poetry run autonomy mint \
       --skip-hash-check \
       --use-custom-chain \
       service packages/valory/services/$directory/ \
-      --key "../$operator_pkey_path" \
+      --key \"../$operator_pkey_path\" \
       --nft $nft \
       -a $AGENT_ID \
       -n $n_agents \
-      --threshold $n_agents \
-      -c $cost_of_bonding
-      )
+      --threshold $n_agents"
+
+    if [ "${use_staking}" = true ]; then
+      cost_of_bonding=$olas_balance_required_to_bond
+      cmd+=" -c $cost_of_bonding --token $CUSTOM_OLAS_ADDRESS"
+    else
+      cost_of_bonding=$xdai_balance_required_to_bond
+      cmd+=" -c $cost_of_bonding"
+    fi
+    service_id=$(eval $cmd)
     # parse only the id from the response
     service_id="${service_id##*: }"
     # validate id
@@ -470,97 +552,120 @@ if [ "$local_service_hash" != "$remote_service_hash" ]; then
     echo "The operator and agent addresses need to have enough funds so that the process is not interrupted."
     echo ""
 
-    # Check balances
-    suggested_amount=50000000000000000
-    ensure_minimum_balance "$operator_address" $suggested_amount "operator's address"
-
-    suggested_amount=50000000000000000
-    ensure_minimum_balance $agent_address $suggested_amount "agent instance's address"
-
-    echo "------------------------------"
-    echo "Updating on-chain service $service_id"
-    echo "------------------------------"
-    echo ""
-    echo "PLEASE, DO NOT INTERRUPT THIS PROCESS."
-    echo ""
-    echo "Cancelling the on-chain service update prematurely could lead to an inconsistent state of the Safe or the on-chain service state, which may require manual intervention to resolve."
-    echo ""
-
-    # TODO this condition should be increased to be service_state=DEPLOYED && current_safe_owner=agent_address.
-    # Otherwise the script will not recover the on-chain state in the (rare) case where this transaction succeeds but terminating transaction fails.
-    if [ "$(get_on_chain_service_state "$service_id")" == "DEPLOYED" ]; then
-        # transfer the ownership of the Safe from the agent to the service owner
-        # (in a live service, this should be done by sending a 0 DAI transfer to its Safe)
-        service_safe_address=$(<"../$service_safe_address_path")
-        echo "[Agent instance] Swapping Safe owner..."
-        output=$(poetry run python "../scripts/swap_safe_owner.py" "$service_safe_address" "../$agent_pkey_path" "$operator_address" "$rpc")
-        if [[ $? -ne 0 ]]; then
-            echo "Swapping Safe owner failed.\n$output"
-            exit 1
-        fi
-        echo "$output"
+    response="y"
+    if [ "${use_staking}" = true ]; then
+      echo "Warning: updating the on-chain may require that your service is unstaked."
+      echo "Continuing will automatically unstake your service if it is staked, which may effect your staking rewards."
+      echo "Do you want to continue? [y/N]"
+      read -r response
     fi
 
-    # terminate current service
-    if [ "$(get_on_chain_service_state "$service_id")" == "DEPLOYED" ]; then
-        echo "[Service owner] Terminating on-chain service $service_id..."
-        output=$(
-            poetry run autonomy service \
-                --use-custom-chain \
-                terminate "$service_id" \
-                --key "../$operator_pkey_path"
-        )
-        if [[ $? -ne 0 ]]; then
-            echo "Terminating service failed.\n$output"
-            echo "Please, delete or rename the ./trader folder and try re-run this script again."
-            exit 1
-        fi
-    fi
+    if [[ ! "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
+        echo "Skipping on-chain hash update."
+    else
+      # unstake the service
+      if [ "${use_staking}" = true ]; then
+          perform_staking_ops true
+      fi
 
-    # unbond current service
-    if [ "$(get_on_chain_service_state "$service_id")" == "TERMINATED_BONDED" ]; then
-        echo "[Operator] Unbonding on-chain service $service_id..."
-        output=$(
-            poetry run autonomy service \
-                --use-custom-chain \
-                unbond "$service_id" \
-                --key "../$operator_pkey_path"
-        )
-        if [[ $? -ne 0 ]]; then
-            echo "Unbonding service failed.\n$output"
-            echo "Please, delete or rename the ./trader folder and try re-run this script again."
-            exit 1
-        fi
-    fi
+      # Check balances
+      suggested_amount=$suggested_top_up_default
+      ensure_minimum_balance "$operator_address" $suggested_amount "operator's address"
 
-    # update service
-    if [ "$(get_on_chain_service_state "$service_id")" == "PRE_REGISTRATION" ]; then
-        echo "[Service owner] Updating on-chain service $service_id..."
-        cost_of_bonding=10000000000000000
-        nft="bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq"
-        output=$(
-            poetry run autonomy mint \
-                --skip-hash-check \
-                --use-custom-chain \
-                service packages/valory/services/trader/ \
-                --key "../$operator_pkey_path" \
-                --nft $nft \
-                -a $AGENT_ID \
-                -n $n_agents \
-                --threshold $n_agents \
-                -c $cost_of_bonding \
-                --update "$service_id"
-        )
-        if [[ $? -ne 0 ]]; then
-            echo "Updating service failed.\n$output"
-            echo "Please, delete or rename the ./trader folder and try re-run this script again."
-            exit 1
-        fi
-    fi
+      suggested_amount=$suggested_top_up_default
+      ensure_minimum_balance $agent_address $suggested_amount "agent instance's address"
 
-    echo ""
-    echo "Finished updating on-chain service $service_id."
+      echo "------------------------------"
+      echo "Updating on-chain service $service_id"
+      echo "------------------------------"
+      echo ""
+      echo "PLEASE, DO NOT INTERRUPT THIS PROCESS."
+      echo ""
+      echo "Cancelling the on-chain service update prematurely could lead to an inconsistent state of the Safe or the on-chain service state, which may require manual intervention to resolve."
+      echo ""
+
+      # TODO this condition should be increased to be service_state=DEPLOYED && current_safe_owner=agent_address.
+      # Otherwise the script will not recover the on-chain state in the (rare) case where this transaction succeeds but terminating transaction fails.
+      if [ "$(get_on_chain_service_state "$service_id")" == "DEPLOYED" ]; then
+          # transfer the ownership of the Safe from the agent to the service owner
+          # (in a live service, this should be done by sending a 0 DAI transfer to its Safe)
+          service_safe_address=$(<"../$service_safe_address_path")
+          echo "[Agent instance] Swapping Safe owner..."
+          output=$(poetry run python "../scripts/swap_safe_owner.py" "$service_safe_address" "../$agent_pkey_path" "$operator_address" "$rpc")
+          if [[ $? -ne 0 ]]; then
+              echo "Swapping Safe owner failed.\n$output"
+              exit 1
+          fi
+          echo "$output"
+      fi
+
+      # terminate current service
+      if [ "$(get_on_chain_service_state "$service_id")" == "DEPLOYED" ]; then
+          echo "[Service owner] Terminating on-chain service $service_id..."
+          output=$(
+              poetry run autonomy service \
+                  --use-custom-chain \
+                  terminate "$service_id" \
+                  --key "../$operator_pkey_path"
+          )
+          if [[ $? -ne 0 ]]; then
+              echo "Terminating service failed.\n$output"
+              echo "Please, delete or rename the ./trader folder and try re-run this script again."
+              exit 1
+          fi
+      fi
+
+      # unbond current service
+      if [ "$(get_on_chain_service_state "$service_id")" == "TERMINATED_BONDED" ]; then
+          echo "[Operator] Unbonding on-chain service $service_id..."
+          output=$(
+              poetry run autonomy service \
+                  --use-custom-chain \
+                  unbond "$service_id" \
+                  --key "../$operator_pkey_path"
+          )
+          if [[ $? -ne 0 ]]; then
+              echo "Unbonding service failed.\n$output"
+              echo "Please, delete or rename the ./trader folder and try re-run this script again."
+              exit 1
+          fi
+      fi
+
+      # update service
+      if [ "$(get_on_chain_service_state "$service_id")" == "PRE_REGISTRATION" ]; then
+          echo "[Service owner] Updating on-chain service $service_id..."
+          nft="bafybeig64atqaladigoc3ds4arltdu63wkdrk3gesjfvnfdmz35amv7faq"
+          export cmd=""
+          if [ "${use_staking}" = true ]; then
+              cost_of_bonding=$olas_balance_required_to_bond
+              poetry run python "../scripts/update_service.py" "../$operator_pkey_path" "$nft" "$AGENT_ID" "$service_id" "$CUSTOM_OLAS_ADDRESS" "$cost_of_bonding" "packages/valory/services/trader/" "$rpc"
+          else
+              cost_of_bonding=$xdai_balance_required_to_bond
+              cmd="poetry run autonomy mint \
+                  --skip-hash-check \
+                  --use-custom-chain \
+                  service packages/valory/services/trader/ \
+                  --key \"../$operator_pkey_path\" \
+                  --nft $nft \
+                  -a $AGENT_ID \
+                  -n $n_agents \
+                  -c $cost_of_bonding \
+                  --threshold $n_agents \
+                  --update \"$service_id\""
+          fi
+          output=$(eval "$cmd")
+          if [[ $? -ne 0 ]]; then
+              echo "Updating service failed.\n$output"
+              echo "Please, delete or rename the ./trader folder and try re-run this script again."
+              exit 1
+          fi
+      fi
+
+      echo ""
+      echo "Finished updating on-chain service $service_id."
+  fi
 fi
+
 
 echo ""
 echo "Ensuring on-chain service $service_id is in DEPLOYED state..."
@@ -573,7 +678,13 @@ fi
 # activate service
 if [ "$(get_on_chain_service_state "$service_id")" == "PRE_REGISTRATION" ]; then
     echo "[Service owner] Activating registration for on-chain service $service_id..."
-    output=$(poetry run autonomy service --use-custom-chain activate --key "../$operator_pkey_path" "$service_id")
+    export cmd="poetry run autonomy service --use-custom-chain activate --key "../$operator_pkey_path" "$service_id""
+    if [ "${use_staking}" = true ]; then
+        minimum_olas_balance=$olas_balance_required_to_bond
+        ensure_erc20_balance "$operator_address" $minimum_olas_balance "operator's address" $CUSTOM_OLAS_ADDRESS "OLAS"
+        cmd+=" --token $CUSTOM_OLAS_ADDRESS"
+    fi
+    output=$(eval "$cmd")
     if [[ $? -ne 0 ]]; then
         echo "Activating service failed.\n$output"
         echo "Please, delete or rename the ./trader folder and try re-run this script again."
@@ -584,7 +695,15 @@ fi
 # register agent instance
 if [ "$(get_on_chain_service_state "$service_id")" == "ACTIVE_REGISTRATION" ]; then
     echo "[Operator] Registering agent instance for on-chain service $service_id..."
-    output=$(poetry run autonomy service --use-custom-chain register --key "../$operator_pkey_path" "$service_id" -a $AGENT_ID -i "$agent_address")
+    export cmd="poetry run autonomy service --use-custom-chain register --key "../$operator_pkey_path" "$service_id" -a $AGENT_ID -i "$agent_address""
+
+    if [ "${use_staking}" = true ]; then
+        minimum_olas_balance=$olas_balance_required_to_bond
+        ensure_erc20_balance "$operator_address" $minimum_olas_balance "operator's address" $CUSTOM_OLAS_ADDRESS "OLAS"
+        cmd+=" --token $CUSTOM_OLAS_ADDRESS"
+    fi
+
+    output=$(eval "$cmd")
     if [[ $? -ne 0 ]]; then
         echo "Registering agent instance failed.\n$output"
         echo "Please, delete or rename the ./trader folder and try re-run this script again."
@@ -610,6 +729,13 @@ elif [ "$service_state" == "FINISHED_REGISTRATION" ]; then
         echo "Please, delete or rename the ./trader folder and try re-run this script again."
         exit 1
     fi
+fi
+
+# perform staking operations
+# the following will stake the service in case it is not staked, and there are available rewards
+# if the service is already staked, and there are no available rewards, it will unstake the service
+if [ "${use_staking}" = true ]; then
+  perform_staking_ops
 fi
 
 # check state
@@ -678,11 +804,11 @@ service_dir="trader_service"
 build_dir="abci_build"
 directory="$service_dir/$build_dir"
 
-suggested_amount=50000000000000000
+suggested_amount=$suggested_top_up_default
 ensure_minimum_balance "$agent_address" $suggested_amount "agent instance's address"
 
 suggested_amount=500000000000000000
-ensure_minimum_balance "$SAFE_CONTRACT_ADDRESS" $suggested_amount "service Safe's address" "true"
+ensure_minimum_balance "$SAFE_CONTRACT_ADDRESS" $suggested_amount "service Safe's address" $WXDAI_ADDRESS
 
 if [ -d $directory ]
 then
@@ -719,6 +845,7 @@ poetry run autonomy deploy build --n $n_agents -ltm
 cd ..
 
 warm_start
+
 add_volume_to_service "$PWD/trader_service/abci_build/docker-compose.yaml" "trader_abci_0" "/data" "$PWD/../$store/"
 
 # Run the deployment
