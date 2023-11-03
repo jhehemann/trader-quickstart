@@ -15,11 +15,11 @@ git push
 
 # Step 3: Navigate to trader-quickstart and check for ./trader repo
 cd ../trader-quickstart || { echo "Failed to cd into ../trader-quickstart. Exiting."; exit 1; }
-# if [ -d "./trader" ]; then
-#   rm -rf ./trader
-# else
-#   echo "./trader does not exist. Continuing."
-# fi
+if [ -d "./trader" ]; then
+  rm -rf ./trader
+else
+  echo "./trader does not exist. Continuing."
+fi
 
-# # Step 4: Execute the shell script ./run_service.sh
-# ./run_service.sh || { echo "Failed to run ./run_service.sh. Exiting."; exit 1; }
+# Step 4: Execute the shell script ./run_service.sh
+./run_service.sh || { echo "Failed to run ./run_service.sh. Exiting."; exit 1; }
